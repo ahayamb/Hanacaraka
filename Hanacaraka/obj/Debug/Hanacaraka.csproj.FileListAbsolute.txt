@@ -1,0 +1,9 @@
+D:\Source Code\Hanacaraka\Hanacaraka\bin\Debug\Hanacaraka.exe.config
+D:\Source Code\Hanacaraka\Hanacaraka\bin\Debug\Hanacaraka.exe
+D:\Source Code\Hanacaraka\Hanacaraka\bin\Debug\Hanacaraka.pdb
+D:\Source Code\Hanacaraka\Hanacaraka\obj\Debug\Hanacaraka.csprojResolveAssemblyReference.cache
+D:\Source Code\Hanacaraka\Hanacaraka\obj\Debug\Hanacaraka.Form1.resources
+D:\Source Code\Hanacaraka\Hanacaraka\obj\Debug\Hanacaraka.Properties.Resources.resources
+D:\Source Code\Hanacaraka\Hanacaraka\obj\Debug\Hanacaraka.csproj.GenerateResource.Cache
+D:\Source Code\Hanacaraka\Hanacaraka\obj\Debug\Hanacaraka.exe
+D:\Source Code\Hanacaraka\Hanacaraka\obj\Debug\Hanacaraka.pdb
