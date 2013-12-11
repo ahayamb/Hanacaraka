@@ -9,6 +9,11 @@ namespace Hanacaraka
 {
     static class Preprocessing
     {
+        /// <summary>
+        /// Returns the number indicate the character position on input bitmap with format x, y, width, height
+        /// </summary>
+        /// <param name="inp"></param>
+        /// <returns>4 * n integer indicate the position of characters</returns>
         static public List<int> SegmentingImage(Bitmap inp)
         {
             Color c;
@@ -28,7 +33,7 @@ namespace Hanacaraka
                         break;
                     }
                 }
-                if (isThere)
+                if (isThere && i < inp.Width - 1)
                 {
                     res.Add(i);
                     i++;
@@ -42,7 +47,16 @@ namespace Hanacaraka
                             if (c.R == 255 && c.G == 255 && c.B == 255)
                             {
                                 minj = minj > j ? j : minj;
-                                maxj = maxj < j ? j : maxj;
+                                break;
+                            }
+                        }
+                        int k;
+                        for (k = inp.Height - 1; k >= 0; k--)
+                        {
+                            c = inp.GetPixel(i, k);
+                            if (c.R == 255 && c.G == 255 && c.B == 255)
+                            {
+                                maxj = maxj < k ? k : maxj;
                                 break;
                             }
                         }
@@ -57,11 +71,19 @@ namespace Hanacaraka
                     }
                 }
             }
-            return res;
+            List<int> FinalRest = new List<int>();
+            for (int i = 0; i < res.Count - 3; i += 4)
+            {
+                FinalRest.Add(res[i]);                                //x pos
+                FinalRest.Add(-res[i + 2]);                           //y pos
+                FinalRest.Add(res[i + 1] - res[i]);                   //width
+                FinalRest.Add(-res[i + 3] / inp.Width - -res[i + 2]); //height
+            }
+            res.Clear();
+            return FinalRest;
         }
-
         
-        ///----------------------------------------------------------------Converting to binary image..........................
+        ///----------------------------------------------------------------Converting to binary image--------------------------------------
         static public Bitmap GetBinaryImage(Bitmap inp)
         {
             Bitmap res = new Bitmap(inp.Width, inp.Height);
@@ -78,13 +100,14 @@ namespace Hanacaraka
             }
 
             int threshold = GetThreshold(histogram, (double)(res.Width * res.Height));
+            if (threshold == 0) return res;
 
             for (int i = 0; i < inp.Width; i++)
             {
                 for (int j = 0; j < inp.Height; j++)
                 {
-                    if (res.GetPixel(i, j).R < threshold) res.SetPixel(i, j, Color.White);
-                    else res.SetPixel(i, j, Color.Black);
+                    if (res.GetPixel(i, j).R < threshold) res.SetPixel(i, j, Color.Black);
+                    else res.SetPixel(i, j, Color.White);
                 }
             }
             return res;
@@ -124,8 +147,7 @@ namespace Hanacaraka
             return (int)threshold;
         }
 
-        
-        ///----------------------------------------------------------------Thinning Process..........................
+        ///----------------------------------------------------------------Thinning Process-----------------------------------------------
         static public Bitmap Thinning(Bitmap bmInput)
         {
             bool[,] mulmat = new bool[bmInput.Width, bmInput.Height];
@@ -222,6 +244,39 @@ namespace Hanacaraka
             if (SP == 1 && (BP >= 2 && BP <= 6) && m1 == 0 && m2 == 0)
                 return false;
             else return true;
+        }
+
+        public static int GetFoot(Bitmap inp, string z)
+        {
+            int foot = 0;
+            int HeightScan = (int)(0.5 * inp.Height);
+
+            bool FootCandidate = false;
+            bool isPrevTrue = false;
+            for (int i = 0; i < inp.Width; i++)
+            {
+                for (int j = inp.Height - 1; j >= inp.Height - HeightScan; j--)
+                {
+                    FootCandidate = false;
+                    if (inp.GetPixel(i, j).R == 255) // inp.GetPixel(i + 1, j).R == 255 || inp.GetPixel(i + 2, j).R == 255)
+                    {
+                        FootCandidate = true;
+                        break;
+                    }
+                }
+
+                if ((!isPrevTrue && FootCandidate))
+                {
+                    foot++;
+                    isPrevTrue = true;
+                }
+                else if (!FootCandidate)
+                {
+                    isPrevTrue = false;
+                }
+            }
+
+            return foot;
         }
     }
 }

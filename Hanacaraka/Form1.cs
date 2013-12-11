@@ -7,18 +7,40 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.IO;
 
 namespace Hanacaraka
 {
     public partial class Form1 : Form
     {
         Bitmap inp, mod;
+        List<Bitmap> SegmentedChar, ds;
+        string StringResult;
+        List<string> dsName;
         public Form1()
         {
             InitializeComponent();
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.StartPosition = FormStartPosition.CenterScreen;
+            LoadDataSet();
+            StringResult = "AhmadHayam";
+        }
+
+        private void LoadDataSet()
+        {
+            ds = new List<Bitmap>();
+            dsName = new List<string>();
+            string[] listFile = Directory.GetFiles(@"D:\Bluetooth\caraka ds\");
+            foreach (string s in listFile)
+            {
+                if (Path.GetExtension(s) == ".bmp")
+                {
+                    Bitmap t = new Bitmap(Image.FromFile(s));
+                    ds.Add(t);
+                    dsName.Add(s);
+                }
+            }
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -36,23 +58,69 @@ namespace Hanacaraka
         {
             if (inp != null)
             {
-                mod = Preprocessing.Thinning(Preprocessing.GetBinaryImage(inp));
+                SegmentedChar = new List<Bitmap>();
+                mod = Preprocessing.GetBinaryImage(inp);
                 pictureBox2.Image = mod;
+                
+                List<int> Square = Preprocessing.SegmentingImage(mod);
+                
+                for (int z = 0; z < Square.Count - 3; z += 4)
+                {
+                    Bitmap tt = new Bitmap(Square[z + 2], Square[z + 3]);
+                
+                    for (int i = Square[z]; i < Square[z] + Square[z + 2]; i++)
+                        for (int j = Square[z + 1]; j < Square[z + 1] + Square[z + 3]; j++)
+                            tt.SetPixel(i - Square[z], j - Square[z + 1], mod.GetPixel(i, j));
+
+                    //Preprocessing.Thinning(tt).Save(@"D:\Sn.jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
+                    SegmentedChar.Add(Preprocessing.Thinning(tt));
+                    SegmentedChar[SegmentedChar.Count - 1].Save(@"D:\Bluetooth\caraka ds\" + z.ToString() + z.ToString() + z.ToString() + ".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
+                    Console.WriteLine(Preprocessing.GetFoot(SegmentedChar[SegmentedChar.Count - 1], @"D:\Bluetooth\caraka ds\" + z.ToString() + z.ToString() + z.ToString() + ".jpg"));
+                }
             }
         }
 
-        private void button3_Click(object sender, EventArgs e)
+        private double GetSimiliarity(Bitmap cand, Bitmap tester)
         {
-            List<int> Border = Preprocessing.SegmentingImage(mod);
-            Graphics g = Graphics.FromImage(mod);
-            for (int i = 0; i < Border.Count - 3; i += 4)
+            Bitmap testers = new Bitmap(tester, cand.Size);
+            double tot = 0, curr = 0;
+
+            for (int i = 0; i < cand.Height; i++)
+                for (int j = 0; j < cand.Width; j++)
+                {
+                    if (testers.GetPixel(j, i).R == 255)
+                    {
+                        tot += 1;
+                        if (cand.GetPixel(j, i).R == 255) curr += 1;
+                    }
+                }
+            return curr / tot * 100;
+        }
+
+        private void bHasil_Click(object sender, EventArgs e)
+        {
+            StringResult = "";
+            for (int i = 0; i < SegmentedChar.Count; i++)
             {
-                g.DrawRectangle(new Pen(Color.FromArgb(255, 255, 255)), Border[i], -Border[i + 2], Border[i + 1] - Border[i], -Border[i + 3] / inp.Width - -Border[i + 2]);
-                //if (Border[i] < -inp.Width) g.DrawLine(new System.Drawing.Pen(Color.FromArgb(255, 255, 255), 1), new Point(Border[i - 3], -Border[i] / inp.Width), new Point(Border[i - 2], -Border[i] / inp.Width));
-                //else if (Border[i] < 0) g.DrawLine(new System.Drawing.Pen(Color.FromArgb(255, 255, 255), 1), new Point(Border[i - 2], -Border[i]), new Point(Border[i - 1], -Border[i]));
-                //else g.DrawLine(new System.Drawing.Pen(Color.FromArgb(255, 255, 255), 1), new Point(Border[i], 0), new Point(Border[i], mod.Height));
+                double max = -inp.Height * inp.Width;
+                double mindistance = 10000;
+                string name = "";
+                for (int j = 0; j < ds.Count; j++)
+                {
+                    double temp = GetSimiliarity(SegmentedChar[i], ds[j]);
+                    double Wpattern = (double)(ds[j].Width * SegmentedChar[i].Height) / ds[j].Height;
+
+                    if (max < temp && mindistance > Math.Abs(SegmentedChar[i].Width - ds[j].Width))
+                    {
+                        max = temp;
+                        name = dsName[j];
+                        mindistance = Math.Abs(SegmentedChar[i].Width - ds[j].Width);
+                    }
+                }
+                StringResult += Path.GetFileNameWithoutExtension(name);
+                SegmentedChar[i].Save(@"D:\Bluetooth\caraka ds\" + i.ToString() + i.ToString() + ".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
             }
-            pictureBox2.Image = mod;
+            Console.WriteLine(StringResult);
         }
     }
 }
