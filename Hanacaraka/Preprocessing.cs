@@ -19,40 +19,6 @@ namespace Hanacaraka
                 y = _y;
             }
         }
-        static public void Solidify(Bitmap inp)
-        {
-            bool[,] M = new bool[inp.Height, inp.Width];
-            bool[,] Visit = new bool[inp.Height, inp.Width];
-            bool[,] flag = new bool[inp.Height, inp.Width];
-            for (int i = 0; i < inp.Height; i++)
-                for (int j = 0; j < inp.Width; j++)
-                {
-                    if (inp.GetPixel(j, i).R == 255) M[i, j] = true;
-                    else M[i, j] = false;
-                }
-
-            Queue<coord> waitingList = new Queue<coord>();
-            waitingList.Enqueue(new coord(0, 0));
-            while (waitingList.Count > 0)
-            {
-                int xx = waitingList.Peek().x, yy = waitingList.Peek().y;
-                if (xx >= 0 && xx < inp.Height && yy >= 0 && yy < inp.Width && M[xx,yy] == false && Visit[xx,yy] == false)
-                {
-                    flag[xx, yy] = true;
-                    Visit[xx, yy] = true;
-
-                    waitingList.Enqueue(new coord(xx + 1, yy));
-                    waitingList.Enqueue(new coord(xx - 1, yy));
-                    waitingList.Enqueue(new coord(xx, yy + 1));
-                    waitingList.Enqueue(new coord(xx, yy - 1));
-                }
-                waitingList.Dequeue();
-            }
-
-            for (int i = 0; i < inp.Height; i++)
-                for (int j = 0; j < inp.Width; j++)
-                    if (!flag[i, j]) inp.SetPixel(j, i, Color.White);
-        }
         /// <summary>
         /// Returns the number indicate the character position on input bitmap with format x, y, width, height
         /// </summary>
@@ -127,7 +93,87 @@ namespace Hanacaraka
             return FinalRest;
         }
 
-        ///----------------------------------------------------------------Converting to binary image--------------------------------------
+        static public List<Bitmap> SegmentingImage(Bitmap inp, int dummy)
+        {
+            Color c;
+            List<int> res = new List<int>();
+            for (int i = 0; i < inp.Width; i++)
+            {
+                bool isThere = false;
+                int minj = 1000, maxj = -1;
+                for (int j = 0; j < inp.Height; j++)
+                {
+                    c = inp.GetPixel(i, j);
+                    if (c.R == 255 && c.G == 255 && c.B == 255)
+                    {
+                        isThere = true;
+                        minj = minj > j ? j : minj;
+                        maxj = maxj < j ? j : maxj;
+                        break;
+                    }
+                }
+                if (isThere && i < inp.Width - 1)
+                {
+                    res.Add(i);
+                    i++;
+                    bool isOnreg = true;
+                    while (isOnreg && i < inp.Width)
+                    {
+                        int j;
+                        for (j = 0; j < inp.Height; j++)
+                        {
+                            c = inp.GetPixel(i, j);
+                            if (c.R == 255 && c.G == 255 && c.B == 255)
+                            {
+                                minj = minj > j ? j : minj;
+                                break;
+                            }
+                        }
+                        int k;
+                        for (k = inp.Height - 1; k >= 0; k--)
+                        {
+                            c = inp.GetPixel(i, k);
+                            if (c.R == 255 && c.G == 255 && c.B == 255)
+                            {
+                                maxj = maxj < k ? k : maxj;
+                                break;
+                            }
+                        }
+                        if (j == inp.Height)
+                        {
+                            isOnreg = false;
+                            res.Add(i);
+                            res.Add(-minj);
+                            res.Add(inp.Width * -maxj);
+                        }
+                        else i++;
+                    }
+                }
+            }
+            List<int> FinalRest = new List<int>();
+            for (int i = 0; i < res.Count - 3; i += 4)
+            {
+                FinalRest.Add(res[i]);                                //x pos
+                FinalRest.Add(-res[i + 2]);                           //y pos
+                FinalRest.Add(res[i + 1] - res[i]);                   //width
+                FinalRest.Add(-res[i + 3] / inp.Width - -res[i + 2]); //height
+            }
+            res.Clear();
+            List<Bitmap> result = new List<Bitmap>();
+            for (int z = 0; z < FinalRest.Count - 3; z += 4)
+            {
+                Bitmap tt = new Bitmap(FinalRest[z + 2], FinalRest[z + 3]);
+
+                for (int i = FinalRest[z]; i < FinalRest[z] + FinalRest[z + 2]; i++)
+                    for (int j = FinalRest[z + 1]; j < FinalRest[z + 1] + FinalRest[z + 3]; j++)
+                        tt.SetPixel(i - FinalRest[z], j - FinalRest[z + 1], inp.GetPixel(i, j));
+                result.Add(tt);
+            }
+
+            return result;
+        }
+
+        ///----------------------------------------------------------------Convert to binary image--------------------------------------
         static public Bitmap GetBinaryImage(Bitmap inp)
         {
             Bitmap res = new Bitmap(inp.Width, inp.Height);
@@ -385,7 +431,6 @@ namespace Hanacaraka
                     if (branch.Count == 0) break;
                     else
                     {
-                        //if (hitungPath < 10) branchCount--;
                         c.x = branch.Peek().x;
                         c.y = branch.Peek().y;
                         branch.Dequeue();
@@ -409,7 +454,6 @@ namespace Hanacaraka
                 }
             }
             result += prev;
-            //Console.WriteLine(result);
 
             String tmp = result;
             result = tmp[0].ToString();
@@ -612,7 +656,7 @@ namespace Hanacaraka
                 for (int j = inp.Height - 1; j >= inp.Height - HeightScan; j--)
                 {
                     FootCandidate = false;
-                    if (inp.GetPixel(i, j).R == 255 || i == (inp.Width + 1) / 2) // inp.GetPixel(i + 1, j).R == 255 || inp.GetPixel(i + 2, j).R == 255)
+                    if (inp.GetPixel(i, j).R == 255 || i == (inp.Width + 1) / 2)
                     {
                         FootCandidate = true;
                         break;
@@ -635,7 +679,7 @@ namespace Hanacaraka
                 for (int j = inp.Height - 1; j >= inp.Height - HeightScan; j--)
                 {
                     FootCandidate = false;
-                    if (inp.GetPixel(i, j).R == 255 || i == (inp.Width + 1) / 2) // inp.GetPixel(i + 1, j).R == 255 || inp.GetPixel(i + 2, j).R == 255)
+                    if (inp.GetPixel(i, j).R == 255 || i == (inp.Width + 1) / 2)
                     {
                         FootCandidate = true;
                         break;
@@ -668,7 +712,7 @@ namespace Hanacaraka
                 for (int j = inp.Height - 1; j >= inp.Height - HeightScan; j--)
                 {
                     FootCandidate = false;
-                    if (inp.GetPixel(i, j).R == 255) // inp.GetPixel(i + 1, j).R == 255 || inp.GetPixel(i + 2, j).R == 255)
+                    if (inp.GetPixel(i, j).R == 255)
                     {
                         FootCandidate = true;
                         break;
@@ -711,74 +755,6 @@ namespace Hanacaraka
 
             return roundPosition;
         }
-
-        //public static void PlotPath(Bitmap inp)
-        //{
-        //    bool mod = false;
-        //    coord c = new coord();
-        //    for (int i = inp.Height - 1; i >= inp.Height * 1 / 10; i--)
-        //    {
-        //        for (int j = 0; j < inp.Width * 1 / 10; j++)
-        //        {
-        //            if (inp.GetPixel(j, i).R == 255)
-        //            {
-        //                c.x = i;
-        //                c.y = j;
-        //                mod = true;
-        //                break;
-        //            }
-        //        }
-        //        if (mod) break;
-        //    }
-        //    bool[,] visit = new bool[inp.Height, inp.Width];
-        //    bool start = true;
-        //    int prev = 1;
-        //    String result = "";
-        //    Queue<coord> branch = new Queue<coord>();
-        //    while (true)
-        //    {
-        //        if ((inp.GetPixel(c.y - 1, c.x).R == 255 || inp.GetPixel(c.y + 1, c.x).R == 255 || inp.GetPixel(c.y, c.x - 1).R == 255) && (prev == -1 || prev == 1))
-        //        {
-        //            //if (prev != 1) result += prev.ToString();
-        //            //else prev = 1;
-        //            visit[c.x, c.y] = true;
-        //            inp.SetPixel(c.y, c.x, Color.Red);
-        //            coord temp = new coord(c.x, c.y);
-        //            coord temp2 = new coord();
-        //            bool trueSerong = false;
-        //            Queue<coord> serong = new Queue<coord>();
-        //            if (inp.GetPixel(temp.y + 1, temp.x).R == 255)
-        //            {
-        //                serong.Enqueue(new coord(c.x, c.y + 1));
-        //                trueSerong = true;
-        //            }
-        //            if (inp.GetPixel(temp.y - 1, c.x).R == 255)
-        //            {
-        //                serong.Enqueue(new coord(c.x, c.y - 1));
-        //                trueSerong = true;
-        //            }
-        //            if (inp.GetPixel(temp.y, temp.x - 1).R == 255)
-        //            {
-        //                if (trueSerong)
-        //                {
-        //                    visit[temp.x - 1, temp.y] = true;
-        //                    inp.SetPixel(temp.y, temp.x - 1, Color.Red);
-        //                    if (serong.Count > 1)
-        //                    {
-        //                        c.x = serong.Peek().x;
-        //                        c.y = serong.Peek().y;
-        //                        serong.Dequeue();
-        //                        branch.Enqueue(serong.Peek());
-        //                    }
-        //                }
-        //                else
-        //                {
-        //                    c.x--;
-        //                }
-        //            }
-        //        }
-        //    }
-        //}
 
         private static void FillTheMat(bool[,] X, int[,] M, int x, int y, int xP, int yP)
         {

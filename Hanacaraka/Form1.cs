@@ -17,7 +17,6 @@ namespace Hanacaraka
     {
         Bitmap inp, mod;
         List<Character> dataset, SegmentedChar;
-        string StringResult;
         public Form1()
         {
             InitializeComponent();
@@ -28,7 +27,6 @@ namespace Hanacaraka
             this.MaximizeBox = false;
             this.StartPosition = FormStartPosition.CenterScreen;
             LoadDataSet();
-            StringResult = "AhmadHayam";
             label2.Text = "Inputkan";
         }
 
@@ -47,21 +45,7 @@ namespace Hanacaraka
                 cs.leftFoot = Convert.ToInt32(part[4]);
                 cs.rightFoot = Convert.ToInt32(part[5]);
                 dataset.Add(cs);
-                //Console.WriteLine(dataset.Count + " " + dataset[dataset.Count - 1].name + " " + dataset[dataset.Count - 1].foot + " " + dataset[dataset.Count - 1].roundPosition);
             }
-
-            //ds = new List<Bitmap>();
-            //dsName = new List<string>();
-            //string[] listFile = Directory.GetFiles(@"D:\Bluetooth\caraka ds\");
-            //foreach (string s in listFile)
-            //{
-            //    if (Path.GetExtension(s) == ".bmp")
-            //    {
-            //        Bitmap t = new Bitmap(Image.FromFile(s));
-            //        ds.Add(t);
-            //        dsName.Add(s);
-            //    }
-            //}
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -83,94 +67,57 @@ namespace Hanacaraka
                 SegmentedChar = new List<Character>();
                 mod = Preprocessing.GetBinaryImage(inp);
                 
-                List<int> Square = Preprocessing.SegmentingImage(mod);
+                List<Bitmap> Square = Preprocessing.SegmentingImage(mod, 0);
                 string parent = "D:\\Bluetooth\\caraka ds";
-                
-                for (int z = 0; z < Square.Count - 3; z += 4)
+                for (int z = 0; z < Square.Count; z++)
                 {
-                    Bitmap tt = new Bitmap(Square[z + 2], Square[z + 3]);
                     Bitmap sandangan, karakter;
+                    List<Bitmap> sandangans = new List<Bitmap>(), karakters = new List<Bitmap>();
                 
-                    for (int i = Square[z]; i < Square[z] + Square[z + 2]; i++)
-                        for (int j = Square[z + 1]; j < Square[z + 1] + Square[z + 3]; j++)
-                            tt.SetPixel(i - Square[z], j - Square[z + 1], mod.GetPixel(i, j));
-
                     int sandanganBawah = 0;
                     int karakterAtas = 0;
 
                     bool prev = false;
                     bool onWhite = false;
-                    for (int i = 0; i < tt.Height; i++)
+                    for (int i = 0; i < Square[z].Height; i++)
                     {
-                        for (int x = 0; x < tt.Width; x++)
+                        for (int x = 0; x < Square[z].Width; x++)
                         {
                             onWhite = false;
-                            if (tt.GetPixel(x, i).R == 255)
+                            if (Square[z].GetPixel(x, i).R == 255)
                             {
                                 onWhite = true;
                                 break;
                             }
                         }
                         if (!prev && onWhite) karakterAtas = i;
-                        if (prev && !onWhite || i == tt.Width - 1 && sandanganBawah == 0) sandanganBawah = i;
+                        if (prev && !onWhite || i == Square[z].Width - 1 && sandanganBawah == 0) sandanganBawah = i;
                         prev = onWhite;
                     }
-
-                    int kiriSandangan = 0, kananSandangan = 0;
-                    prev = false;
-                    onWhite = false;
-                    for (int i = 0; i < tt.Width; i++)
-                    {
-                        for (int x = 0; x < sandanganBawah; x++)
-                        {
-                            onWhite = false;
-                            if (tt.GetPixel(i, x).R == 255)
-                            {
-                                onWhite = true;
-                                break;
-                            }
-                        }
-                        if (!prev && onWhite) kiriSandangan= i;
-                        if (prev && !onWhite || i == tt.Width - 1 && kananSandangan == 0) kananSandangan = i;
-                        prev = onWhite;
-                    }
-
-                    int kiriKarakter = 0, kananKarakter = 0;
-                    prev = false;
-                    onWhite = false;
-                    for (int i = 0; i < tt.Width; i++)
-                    {
-                        for (int x = karakterAtas; x < tt.Height; x++)
-                        {
-                            onWhite = false;
-                            if (tt.GetPixel(i, x).R == 255)
-                            {
-                                onWhite = true;
-                                break;
-                            }
-                        }
-                        if (!prev && onWhite) kiriKarakter = i;
-                        if (prev && !onWhite || i == tt.Width - 1 && kananKarakter == 0) kananKarakter= i;
-                        prev = onWhite;
-                    }
-
-                    sandangan = new Bitmap(kananSandangan - kiriSandangan, sandanganBawah + 1);
-                    for (int i = kiriSandangan; i < kananSandangan; i++)
-                        for (int j = 0; j < sandanganBawah; j++)
-                            sandangan.SetPixel(i - kiriSandangan, j, tt.GetPixel(i, j));
-                    //sandangan.Save(z.ToString() + "sikat.jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
-
-                    karakter = new Bitmap(kananKarakter - kiriKarakter, tt.Height - karakterAtas + 1);
-                    for (int i = kiriKarakter; i < kananKarakter; i++)
-                        for (int j = karakterAtas; j < tt.Height; j++)
-                            karakter.SetPixel(i - kiriKarakter, j - karakterAtas, tt.GetPixel(i, j));
-                    //karakter.Save(z.ToString() + "sikat2.jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
 
                     if (karakterAtas - sandanganBawah > 0)
-                        tt = karakter;
+                    {
+                        sandangan = new Bitmap(Square[z].Width, sandanganBawah);
+                        karakter = new Bitmap(Square[z].Width, Square[z].Height - karakterAtas);
+                        for (int i = 0; i < Square[z].Width; i++)
+                            for (int j = 0; j < sandanganBawah; j++)
+                                sandangan.SetPixel(i, j, Square[z].GetPixel(i, j));
+                        for (int i = 0; i < Square[z].Width; i++)
+                            for (int j = karakterAtas; j < Square[z].Height; j++)
+                                karakter.SetPixel(i, j - karakterAtas, Square[z].GetPixel(i, j));
+                        sandangans = Preprocessing.SegmentingImage(sandangan, 0);
+                        Console.WriteLine(sandangans.Count);
+                        karakters = Preprocessing.SegmentingImage(karakter, 0);
+                        if (karakters.Count > 0) Square[z] = karakters[0];
+                        else Square[z] = karakter;
+                    }
+
+                    for (int i = 0; i < sandangans.Count; i++)
+                        sandangans[i].Save(parent + "\\temp\\" + z.ToString() + "sandangan " + i.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
+                    Square[z].Save(parent + "\\temp\\" + z.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
 
                     Character cs = new Character();
-                    cs.img = Preprocessing.Thinning(tt);
+                    cs.img = Preprocessing.Thinning(Square[z]);
                     cs.name = "Un";
                     cs.foot = Preprocessing.GetFoot(cs.img);
                     cs.roundPosition = Preprocessing.isRound(cs.img);
@@ -180,7 +127,7 @@ namespace Hanacaraka
                     cs.rightFoot = --aa[1];
                     Console.WriteLine(cs.foot + " " + cs.roundPosition + " " + cs.numRegion + " " + cs.leftFoot+ " " + cs.rightFoot);
                     SegmentedChar.Add(cs);
-                    cs.img.Save(parent + "\\temp\\" + z.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
+                    //cs.img.Save(parent + "\\temp\\" + z.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
                 }
             }
         }
@@ -218,7 +165,7 @@ namespace Hanacaraka
                 List<Character> candidateFinal;
 
                 for (int j = 0; j < dataset.Count; j++)
-                    if (SegmentedChar[i].foot == dataset[j].foot)// && SegmentedChar[i].isRound() == dataset[j].isRound())
+                    if (SegmentedChar[i].foot == dataset[j].foot)
                         candidateF.Add(dataset[j]);
 
                 for (int j = 0; j < candidateF.Count; j++)
@@ -375,7 +322,6 @@ namespace Hanacaraka
                 {
                     SoundPlayer sp = new SoundPlayer("Asset\\" + result[i] + ".wav");
                     sp.PlaySync();
-                    //Thread.Sleep(300);
                 }
             }
         }
