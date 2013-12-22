@@ -17,6 +17,7 @@ namespace Hanacaraka
     {
         Bitmap inp, mod;
         List<Character> dataset, SegmentedChar;
+        List<Sandangan>[] listSandangan;
         public Form1()
         {
             InitializeComponent();
@@ -68,11 +69,14 @@ namespace Hanacaraka
                 mod = Preprocessing.GetBinaryImage(inp);
                 
                 List<Bitmap> Square = Preprocessing.SegmentingImage(mod, 0);
+                listSandangan = new List<Sandangan>[Square.Count];
                 string parent = "D:\\Bluetooth\\caraka ds";
+
                 for (int z = 0; z < Square.Count; z++)
                 {
                     Bitmap sandangan, karakter;
                     List<Bitmap> sandangans = new List<Bitmap>(), karakters = new List<Bitmap>();
+                    listSandangan[z] = new List<Sandangan>();
                 
                     int sandanganBawah = 0;
                     int karakterAtas = 0;
@@ -113,8 +117,15 @@ namespace Hanacaraka
                     }
 
                     for (int i = 0; i < sandangans.Count; i++)
-                        sandangans[i].Save(parent + "\\temp\\" + z.ToString() + "sandangan " + i.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
-                    Square[z].Save(parent + "\\temp\\" + z.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
+                    {
+                        Sandangan s = new Sandangan(0);
+                        s.img = Preprocessing.Thinning(sandangans[i]);
+                        s.setCharacteristic(Square[z].Size);
+                        listSandangan[z].Add(s);
+                        Console.WriteLine("sandangan " + s.ratio + " " + s.horizontalPoint + " " + s.verticalPoint);
+                        s.img.Save(parent + "\\temp\\" + z.ToString() + "sandangan " + i.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
+                    }
+                    //Square[z].Save(parent + "\\temp\\" + z.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
 
                     Character cs = new Character();
                     cs.img = Preprocessing.Thinning(Square[z]);
@@ -309,7 +320,40 @@ namespace Hanacaraka
                         }
                     }
                 }
+
+                for (int c = 0; c < listSandangan[i].Count; c++)
+                {
+                    if (listSandangan[i][c].position == 0)
+                    {
+                        if (listSandangan[i][c].horizontalPoint == 1 && listSandangan[i][c].verticalPoint == 1) listSandangan[i][c].name = "r";
+                        else if (listSandangan[i][c].ratio > 0.1667f) listSandangan[i][c].name = "é";
+                        else if (listSandangan[i][c].horizontalPoint == 2) listSandangan[i][c].name = "i";
+                        else listSandangan[i][c].name = "ng";
+                    }
+                }
+
                 result.Add(Path.GetFileNameWithoutExtension(SegmentedChar[i].name));
+            }
+
+            for (int x = 0; x < SegmentedChar.Count; x++)
+            {
+                bool haveVocal = false;
+                bool haveConsonant = false;
+                for (int c = 0; c < listSandangan[x].Count; c++)
+                {
+                    if ((listSandangan[x][c].name == "i" || listSandangan[x][c].name == "é") && !haveVocal)
+                    {
+                        StringBuilder name = new StringBuilder(result[x]);
+                        name[name.Length - 1] = Convert.ToChar(listSandangan[x][c].name);
+                        result[x] = name.ToString();
+                        haveVocal = true;
+                    }
+                    if ((listSandangan[x][c].name == "ng" || listSandangan[x][c].name == "r") && !haveConsonant)
+                    {
+                        result[x] += listSandangan[x][c].name;
+                        haveConsonant = true;
+                    }
+                }
             }
 
             label2.Text = "";

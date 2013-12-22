@@ -43,7 +43,7 @@ namespace Hanacaraka
                         break;
                     }
                 }
-                if (isThere && i < inp.Width - 1)
+                if (isThere && i < inp.Width)
                 {
                     res.Add(i);
                     i++;
@@ -112,7 +112,7 @@ namespace Hanacaraka
                         break;
                     }
                 }
-                if (isThere && i < inp.Width - 1)
+                if (isThere && i < inp.Width)
                 {
                     res.Add(i);
                     i++;
@@ -139,7 +139,7 @@ namespace Hanacaraka
                                 break;
                             }
                         }
-                        if (j == inp.Height)
+                        if (j == inp.Height || i == inp.Width - 1)
                         {
                             isOnreg = false;
                             res.Add(i);
@@ -158,6 +158,7 @@ namespace Hanacaraka
                 FinalRest.Add(res[i + 1] - res[i]);                   //width
                 FinalRest.Add(-res[i + 3] / inp.Width - -res[i + 2]); //height
             }
+            //Console.WriteLine("finalRest " + FinalRest.Count);
             res.Clear();
             List<Bitmap> result = new List<Bitmap>();
             for (int z = 0; z < FinalRest.Count - 3; z += 4)
