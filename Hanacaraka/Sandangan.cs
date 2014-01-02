@@ -13,6 +13,7 @@ namespace Hanacaraka
     {
         public Bitmap img;
         public int horizontalPoint, verticalPoint, position;
+        public int customHorizontalPoint;
         public string name;
         public float ratio;
         public Sandangan(int pos)
@@ -43,6 +44,17 @@ namespace Hanacaraka
                 {
                     isPrev = true;
                     horizontalPoint++;
+                }
+            }
+            isPrev = false;
+            middle = (img.Height + 1) / 5;
+            for (int i = 0; i < img.Width; i++)
+            {
+                if (img.GetPixel(i, middle).R != 255) isPrev = false;
+                else if (img.GetPixel(i, middle).R == 255 && !isPrev)
+                {
+                    isPrev = true;
+                    customHorizontalPoint++;
                 }
             }
             ratio = (float)(img.Width * img.Height) / (float)(size.Width * size.Height);

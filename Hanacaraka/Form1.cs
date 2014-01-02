@@ -70,6 +70,7 @@ namespace Hanacaraka
                 
                 List<Bitmap> Square = Preprocessing.SegmentingImage(mod, 0);
                 listSandangan = new List<Sandangan>[Square.Count];
+                Queue<Sandangan> temp = new Queue<Sandangan>();
                 string parent = "D:\\Bluetooth\\caraka ds";
 
                 for (int z = 0; z < Square.Count; z++)
@@ -110,27 +111,37 @@ namespace Hanacaraka
                             for (int j = karakterAtas; j < Square[z].Height; j++)
                                 karakter.SetPixel(i, j - karakterAtas, Square[z].GetPixel(i, j));
                         sandangans = Preprocessing.SegmentingImage(sandangan, 0);
-                        Console.WriteLine(sandangans.Count);
+                        //Console.WriteLine(sandangans.Count);
                         karakters = Preprocessing.SegmentingImage(karakter, 0);
                         if (karakters.Count > 0) Square[z] = karakters[0];
                         else Square[z] = karakter;
                     }
 
-                    for (int i = 0; i < sandangans.Count; i++)
-                    {
-                        Sandangan s = new Sandangan(0);
-                        s.img = Preprocessing.Thinning(sandangans[i]);
-                        s.setCharacteristic(Square[z].Size);
-                        listSandangan[z].Add(s);
-                        Console.WriteLine("sandangan " + s.ratio + " " + s.horizontalPoint + " " + s.verticalPoint);
-                        s.img.Save(parent + "\\temp\\" + z.ToString() + "sandangan " + i.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
-                    }
-                    //Square[z].Save(parent + "\\temp\\" + z.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
-
                     Character cs = new Character();
                     cs.img = Preprocessing.Thinning(Square[z]);
                     cs.name = "Un";
                     cs.foot = Preprocessing.GetFoot(cs.img);
+                    if (cs.foot == 1)
+                    {
+                        Sandangan s = new Sandangan(1);
+                        s.img = cs.img;
+                        s.setCharacteristic(Square[z].Size);
+                        if (s.customHorizontalPoint >= 3)
+                        {
+                            s.name = "e";
+                            temp.Enqueue(s);
+                        }
+                        else
+                        {
+                            s.name = "h";
+                            listSandangan[SegmentedChar.Count - 1].Add(s);
+                        }
+
+                        //if (s.name == "h") listSandangan[SegmentedChar.Count - 1].Add(s);
+                        //if (z == Square.Count - 1) listSandangan[SegmentedChar.Count - 1].Add(s);
+                        //temp.Enqueue(s);
+                        continue;
+                    }
                     cs.roundPosition = Preprocessing.isRound(cs.img);
                     cs.numRegion = Preprocessing.GetRegion(cs.img);
                     int[] aa = Preprocessing.GetRLFoot(cs.img);
@@ -138,9 +149,32 @@ namespace Hanacaraka
                     cs.rightFoot = --aa[1];
                     Console.WriteLine(cs.foot + " " + cs.roundPosition + " " + cs.numRegion + " " + cs.leftFoot+ " " + cs.rightFoot);
                     SegmentedChar.Add(cs);
-                    //cs.img.Save(parent + "\\temp\\" + z.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
+                    cs.img.Save(parent + "\\temp\\" + z.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
+
+                    if (temp.Count > 0)
+                    {
+                        //Console.Write("tricky detected");
+                        //if (temp.Peek().name == "h") listSandangan[SegmentedChar.Count - 2].Add(temp.Peek());
+                        //else listSandangan[SegmentedChar.Count - 1].Add(temp.Peek());
+                        listSandangan[SegmentedChar.Count - 1].Add(temp.Peek());
+                        temp.Dequeue();
+                    }
+
+                    for (int i = 0; i < sandangans.Count; i++)
+                    {
+                        Sandangan s = new Sandangan(0);
+                        s.img = Preprocessing.Thinning(sandangans[i]);
+                        s.setCharacteristic(Square[z].Size);
+                        listSandangan[SegmentedChar.Count - 1].Add(s);
+                        //Console.WriteLine("sandangan " + s.ratio + " " + s.horizontalPoint + " " + s.verticalPoint);
+                        s.img.Save(parent + "\\temp\\" + z.ToString() + "sandangan " + i.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
+                    }
+                    //Square[z].Save(parent + "\\temp\\" + z.ToString() + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
                 }
             }
+
+            for (int i = 0; i < SegmentedChar.Count; i++)
+                Console.WriteLine(listSandangan[i].Count);
         }
 
         private double GetSimiliarity(Bitmap cand, Bitmap tester)
@@ -201,13 +235,13 @@ namespace Hanacaraka
                         candidateLR.Add(candidateHP[j]);
                 }
 
-                
-                Console.WriteLine(candidateF.Count);
-                Console.WriteLine(candidateH.Count);
-                Console.WriteLine(candidateHP.Count);
-                Console.WriteLine(candidateR.Count);
-                Console.WriteLine(candidateLR.Count);
-                Console.WriteLine("------------------------");
+
+                //Console.WriteLine(candidateF.Count);
+                //Console.WriteLine(candidateH.Count);
+                //Console.WriteLine(candidateHP.Count);
+                //Console.WriteLine(candidateR.Count);
+                //Console.WriteLine(candidateLR.Count);
+                //Console.WriteLine("------------------------");
 
                 if (candidateLR.Count != 0) candidateFinal = candidateLR;
                 else if (candidateHP.Count != 0) candidateFinal = candidateHP;
@@ -220,7 +254,7 @@ namespace Hanacaraka
                 
                 if (candidateFinal.Count == 2 && (candidateFinal[0].name.Equals("Ha") || candidateFinal[0].name.Equals("Ta")))
                 {
-                    int middle = (SegmentedChar[i].img.Width + 1) / 2;
+                    int middle = (int)((float)(SegmentedChar[i].img.Width) * 0.4);
                     int count = 0;
                     for (int y = 0; y < SegmentedChar[i].img.Height; y++)
                     {
@@ -326,22 +360,34 @@ namespace Hanacaraka
                     if (listSandangan[i][c].position == 0)
                     {
                         if (listSandangan[i][c].horizontalPoint == 1 && listSandangan[i][c].verticalPoint == 1) listSandangan[i][c].name = "r";
-                        else if (listSandangan[i][c].ratio > 0.1667f) listSandangan[i][c].name = "é";
+                        else if (listSandangan[i][c].ratio > 0.1667f && listSandangan[i][c].horizontalPoint == 2) listSandangan[i][c].name = "é";
                         else if (listSandangan[i][c].horizontalPoint == 2) listSandangan[i][c].name = "i";
                         else listSandangan[i][c].name = "ng";
+                        Console.Write(listSandangan[i][c].name + " ");
                     }
                 }
+                Console.Write("\n");
 
                 result.Add(Path.GetFileNameWithoutExtension(SegmentedChar[i].name));
             }
 
+            //<Concating character and sandangan>
             for (int x = 0; x < SegmentedChar.Count; x++)
             {
                 bool haveVocal = false;
                 bool haveConsonant = false;
+                bool haveDouble = false;
+                if (listSandangan[x].Count > 0 && listSandangan[x][0].name == "e" && listSandangan[x][listSandangan[x].Count - 1].name == "h")
+                {
+                    StringBuilder name = new StringBuilder(result[x]);
+                    name[name.Length - 1] = 'o';
+                    result[x] = name.ToString();
+                    haveVocal = true;
+                    haveDouble = true;
+                }
                 for (int c = 0; c < listSandangan[x].Count; c++)
                 {
-                    if ((listSandangan[x][c].name == "i" || listSandangan[x][c].name == "é") && !haveVocal)
+                    if ((listSandangan[x][c].name == "i" || listSandangan[x][c].name == "é" || listSandangan[x][c].name == "e") && !haveVocal)
                     {
                         StringBuilder name = new StringBuilder(result[x]);
                         name[name.Length - 1] = Convert.ToChar(listSandangan[x][c].name);
@@ -349,6 +395,11 @@ namespace Hanacaraka
                         haveVocal = true;
                     }
                     if ((listSandangan[x][c].name == "ng" || listSandangan[x][c].name == "r") && !haveConsonant)
+                    {
+                        result[x] += listSandangan[x][c].name;
+                        haveConsonant = true;
+                    }
+                    if (listSandangan[x][c].name == "h" && !haveDouble)
                     {
                         result[x] += listSandangan[x][c].name;
                         haveConsonant = true;
